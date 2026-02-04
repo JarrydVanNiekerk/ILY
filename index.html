@@ -7,6 +7,7 @@
 
 <style>
   * { box-sizing: border-box; }
+
   body {
     margin: 0;
     height: 100vh;
@@ -19,7 +20,9 @@
     color: white;
     overflow: hidden;
   }
+
   .scene { perspective: 1200px; z-index: 10; }
+
   .card {
     width: 280px;
     aspect-ratio: 2.5 / 3.5;
@@ -28,7 +31,9 @@
     transition: transform 0.8s cubic-bezier(.4,.2,.2,1);
     cursor: pointer;
   }
+
   .card.flipped { transform: rotateY(180deg); }
+
   .card-face {
     position: absolute;
     inset: 0;
@@ -36,64 +41,146 @@
     backface-visibility: hidden;
     overflow: hidden;
     box-shadow: 0 0 30px rgba(255,215,0,0.3), 0 20px 40px rgba(0,0,0,0.6);
-    background: #2c3e50; /* Fallback color if image fails */
   }
-  .card-front::after {
-    content: "";
+
+  .card-face img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .card-back { transform: rotateY(180deg); }
+
+  .ui {
+    margin-top: 30px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s ease;
+  }
+
+  .ui.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  h1 { font-size: 1.5rem; margin-bottom: 20px; }
+
+  .buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+  }
+
+  button {
+    padding: 12px 24px;
+    font-size: 1rem;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: bold;
+  }
+
+  #yesBtn {
+    background: linear-gradient(135deg, #ff4d6d, #ff8fa3);
+    color: white;
+  }
+
+  #noBtn {
+    background: #e0e0e0;
+    color: #444;
+  }
+
+  .music-toggle {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    padding: 10px 12px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .achievement {
+    animation: pop 0.6s cubic-bezier(.175,.885,.32,1.275) forwards;
+  }
+
+  .heart {
     position: absolute;
-    inset: 0;
-    background: linear-gradient(125deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.2) 55%, rgba(255,255,255,0) 100%);
-    background-size: 200% 200%;
-    transition: background-position 0.4s ease;
+    font-size: 1.4rem;
+    animation: floatUp 1.4s ease-out forwards;
     pointer-events: none;
   }
-  .card:hover .card-front::after { background-position: 100% 100%; }
-  .card-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .card-back { transform: rotateY(180deg); }
-  .ui { margin-top: 30px; text-align: center; opacity: 0; transform: translateY(20px); transition: all 0.6s ease; }
-  .ui.show { opacity: 1; transform: translateY(0); }
-  h1 { font-size: 1.5rem; margin-bottom: 20px; }
-  .buttons { display: flex; gap: 15px; justify-content: center; align-items: center; }
-  button { padding: 12px 24px; font-size: 1rem; border-radius: 50px; border: none; cursor: pointer; transition: all 0.3s ease; font-weight: bold; }
-  #yesBtn { background: linear-gradient(135deg, #ff4d6d, #ff8fa3); color: white; }
-  #noBtn { background: #e0e0e0; color: #444; }
-  .achievement { animation: pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-  @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  @keyframes floatUp {
+    from { transform: translateY(0) scale(1); opacity: 1; }
+    to { transform: translateY(-120px) scale(1.5); opacity: 0; }
+  }
 </style>
 </head>
+
 <body>
+
+<!-- 🎵 Background Music -->
+<audio id="bgMusic" src="bg-music.mp3" loop preload="auto"></audio>
 
 <div class="scene">
   <div class="card" id="card">
     <div class="card-face card-front">
-      <img src="./card-front.png" alt=" ">
+      <img src="./card-front.png" alt="">
     </div>
-    <div class="card-back card-face">
-      <img src="./card-back.png" alt=" ">
+    <div class="card-face card-back">
+      <img src="./card-back.png" alt="">
     </div>
   </div>
 </div>
 
 <div class="ui" id="ui">
-  <h1 id="question">Will you be my Valentine? 💖</h1>
+  <h1>Will you be my Valentine? 💖</h1>
   <div class="buttons">
     <button id="yesBtn">Yes!</button>
     <button id="noBtn">No</button>
   </div>
 </div>
 
+<div class="music-toggle" id="musicToggle">🔊</div>
+
 <script>
   const card = document.getElementById("card");
   const ui = document.getElementById("ui");
   const noBtn = document.getElementById("noBtn");
   const yesBtn = document.getElementById("yesBtn");
+  const bgMusic = document.getElementById("bgMusic");
+  const musicToggle = document.getElementById("musicToggle");
 
   let flipped = false;
   let noCount = 0;
-  let yesScale = 1;
-  const noTexts = ["Are you sure?", "Really??", "Think again! 🥺", "Last chance..."];
+  let musicStarted = false;
+  let muted = false;
+
+  const noTexts = ["are you sure?", "last chance", "ok but why though"];
+
+  function startMusic() {
+    if (!musicStarted) {
+      bgMusic.volume = 0.5;
+      bgMusic.play().catch(() => {});
+      musicStarted = true;
+    }
+  }
 
   card.addEventListener("click", () => {
+    startMusic();
     if (!flipped) {
       card.classList.add("flipped");
       flipped = true;
@@ -103,11 +190,9 @@
 
   noBtn.addEventListener("click", (e) => {
     e.stopPropagation();
+    startMusic();
     if (noCount < noTexts.length) {
-      noBtn.textContent = noTexts[noCount];
-      noCount++;
-      yesScale += 0.4;
-      yesBtn.style.transform = `scale(${yesScale})`;
+      noBtn.textContent = noTexts[noCount++];
     } else {
       noBtn.style.display = "none";
     }
@@ -115,15 +200,39 @@
 
   yesBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    document.body.innerHTML = `
-      <div class="achievement" style="text-align:center;">
-        <h1 style="font-size:3rem;">💖 YES! 💖</h1>
-        <h2>Achievement Unlocked</h2>
-        <p style="font-size:1.2rem; opacity:0.9;">Best Valentine Found! 🏆</p>
-        <p style="margin-top:20px; font-style:italic;">I love you!</p>
-      </div>
-    `;
+    startMusic();
+    spawnHearts(12);
+    setTimeout(() => {
+      document.body.innerHTML = `
+        <div class="achievement" style="text-align:center;">
+          <h1 style="font-size:3rem;">💖 YES! 💖</h1>
+          <h2>Achievement Unlocked</h2>
+          <p style="font-size:1.2rem;">Best Valentine Found 🏆</p>
+          <p style="margin-top:20px; font-style:italic;">I love you!</p>
+        </div>
+      `;
+    }, 800);
   });
+
+  musicToggle.addEventListener("click", () => {
+    muted = !muted;
+    bgMusic.muted = muted;
+    musicToggle.textContent = muted ? "🔇" : "🔊";
+  });
+
+  function spawnHearts(count) {
+    for (let i = 0; i < count; i++) {
+      const heart = document.createElement("div");
+      heart.className = "heart";
+      heart.textContent = "💖";
+      heart.style.left = Math.random() * window.innerWidth + "px";
+      heart.style.bottom = "80px";
+      heart.style.animationDelay = Math.random() * 0.3 + "s";
+      document.body.appendChild(heart);
+      setTimeout(() => heart.remove(), 1500);
+    }
+  }
 </script>
+
 </body>
 </html>
